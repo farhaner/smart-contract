@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Halaman Depan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h1 th:text="${message}">Halo Dunia</h1>
+    <p>Ini adalah tampilan frontend dengan Bootstrap dan Java Spring Boot.</p>
+    <div class="container mt-5">
+        <h1>Masukkan Nama</h1>
+        <form th:action="@{/submitName}" method="post">
+            <div class="mb-3">
+                <label for="nameInput" class="form-label">Nama:</label>
+                <input type="text" id="nameInput" name="name" class="form-control" placeholder="Masukkan nama kamu"
+                       required>
+            </div>
+            <button type="submit" class="btn btn-primary">Kirim</button>
+        </form>
+
+        <!-- Tampilkan hasil jika ada -->
+        <div th:if="${greeting != null}" class="alert alert-success mt-3" th:text="${greeting}"></div>
+    </div>
+</div>
+</body>
+</html>
