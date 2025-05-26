@@ -1,11 +1,13 @@
 package org.exm.smartcontract.dto.response;
 
+import lombok.Builder;
 import lombok.Data;
 
 @Data
-public class SmartContractResponse {
+@Builder
+public class SmartContractResponse<T> {
     private String statusCode;
-    private String status;
+    private Boolean status;
     private String message;
-    private Object data;
+    private T data;
 }

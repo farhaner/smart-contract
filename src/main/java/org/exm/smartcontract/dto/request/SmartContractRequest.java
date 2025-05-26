@@ -5,10 +5,9 @@ import lombok.Data;
 @Data
 public class SmartContractRequest {
 
-    private String nik;
+    private String requestId;
+    private String submissionDate;
+    private String channelId;
     private String nama;
-    private String tanggalLahir;
-    private String jenisKelamin;
-    private String alamat;
-    private String agama;
+    private String nik;
 }

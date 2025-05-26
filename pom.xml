@@ -80,9 +80,9 @@
                         </goals>
                         <configuration>
                             <soliditySourceFiles>
-                                <directory>src/main/resources/app-data/contracts/</directory>
+                                <directory>src/main/resources/app-dataV2/contracts/</directory>
                                 <includes>
-                                    <include>CrudContract.sol</include>
+                                    <include>Migrations.sol</include>
                                 </includes>
                             </soliditySourceFiles>
                         </configuration>

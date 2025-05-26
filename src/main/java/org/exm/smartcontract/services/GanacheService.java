@@ -7,5 +7,6 @@ import org.springframework.http.ResponseEntity;
 
 public interface GanacheService {
 
-    ResponseEntity<SmartContractResponse> crud(SmartContractRequest smartContractReq);
+    ResponseEntity<SmartContractResponse> crud(SmartContractRequest request) throws Exception;
+
 }
