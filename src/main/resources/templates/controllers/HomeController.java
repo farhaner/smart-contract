@@ -26,12 +26,12 @@ public class HomeController {
     @PostMapping("/submitName")
     public String submitName(@ModelAttribute SmartContractRequest request, Model model) {
 
-        String greeting = "Halo, " + request.getNama() + "! Selamat datang.";
+        String greeting = "Halo, " + request.getName() + "! Selamat datang.";
 
         log.info(greeting);
         log.info("Request : ", request);
 
-        ganacheService.crud(request);
+        ganacheService.create(request);
 
         // Masukkan hasil ke model agar bisa ditampilkan di halaman
         model.addAttribute("greeting", greeting);

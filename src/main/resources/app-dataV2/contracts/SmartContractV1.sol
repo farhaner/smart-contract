@@ -50,4 +50,9 @@ contract SmartContractV1 {
     function getAllRequestIds() public view returns (string[] memory) {
         return requestIdList;
     }
+
+    function getData(uint index
+    ) public view returns (string memory name, string memory name) {
+        return (data[index].name, data[index].age);
+    }
 }
