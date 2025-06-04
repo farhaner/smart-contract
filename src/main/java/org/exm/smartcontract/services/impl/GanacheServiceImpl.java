@@ -1,16 +1,19 @@
 package org.exm.smartcontract.services.impl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.exm.smartcontract.dto.request.SmartContractRequest;
-import org.exm.smartcontract.dto.request.swapTrxRequest;
+import org.exm.smartcontract.dto.request.SwapTrxRequest;
+import org.exm.smartcontract.dto.request.WithdrawTrxRequest;
 import org.exm.smartcontract.dto.response.DetailData;
 import org.exm.smartcontract.dto.response.SmartContractResponse;
-import org.exm.smartcontract.models.NasabahSource;
-import org.exm.smartcontract.repositories.NasabahRecipientRepository;
-import org.exm.smartcontract.repositories.NasabahSourceRepository;
-import org.exm.smartcontract.services.CoingeckoService;
+import org.exm.smartcontract.models.Nasabah;
+import org.exm.smartcontract.models.Transactions;
+import org.exm.smartcontract.repositories.NasabahRepository;
+import org.exm.smartcontract.repositories.TransactionsRepository;
 import org.exm.smartcontract.services.GanacheService;
+import org.exm.smartcontract.services.PriceConversionService;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +31,7 @@ import org.web3j.utils.Convert;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -37,7 +41,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GanacheServiceImpl implements GanacheService {
 
-    private final NasabahSourceRepository nasabahSourceRepository;
     @Value("${GANACHE.URL}")
     private String urlGanache;
     @Value("${PRIVATE.KEY}")
@@ -45,9 +48,9 @@ public class GanacheServiceImpl implements GanacheService {
     @Value("${CONTRACT.ADDRESS}")
     private String contractAddress;
 
-    private final CoingeckoService coingeckoService;
-    private final NasabahSourceRepository sourceRepository;
-    private final NasabahRecipientRepository recipientRepository;
+    private final PriceConversionService priceConversionService;
+    private final TransactionsRepository transactionsRepository;
+    private final NasabahRepository nasabahRepository;
 
 
     @Override
@@ -58,8 +61,8 @@ public class GanacheServiceImpl implements GanacheService {
 
             ContractGasProvider gasProvider = new StaticGasProvider(
                     BigInteger.valueOf(20_000_000_000L),
-                    BigInteger.valueOf(4_300_000)
-            );
+                    BigInteger.valueOf(4_300_000));
+
             SmartContractV1 contract = SmartContractV1.load(contractAddress, web3j, credentials, gasProvider);
 
             // initial field create
@@ -85,12 +88,7 @@ public class GanacheServiceImpl implements GanacheService {
                     .status(createtrx.getStatus())
                     .build();
 
-            SmartContractResponse<DetailData> response = SmartContractResponse.<DetailData>builder()
-                    .statusCode("000")
-                    .status(true)
-                    .message("Success Create")
-                    .data(detailData)
-                    .build();
+            SmartContractResponse<DetailData> response = SmartContractResponse.<DetailData>builder().statusCode("000").status(true).message("Success Create").data(detailData).build();
             log.info("Event: {}", createtrx);
 
             return ResponseEntity.ok(response);
@@ -106,7 +104,7 @@ public class GanacheServiceImpl implements GanacheService {
                     .build();
             return ResponseEntity.status(500).body(response);
         } finally {
-            log.info("Finished Process");
+            log.info("Finished Process Transaction");
         }
     }
 
@@ -117,20 +115,14 @@ public class GanacheServiceImpl implements GanacheService {
 
 
     @Override
-    public ResponseEntity<SmartContractResponse> swap(swapTrxRequest request) throws Exception {
+    public ResponseEntity<SmartContractResponse> swap(SwapTrxRequest request) throws Exception {
         TransactionReceipt transfer = null;
         try {
             Web3j web3j = Web3j.build(new HttpService(urlGanache)); // Ganache di localhost
             Credentials credentials = Credentials.create(privateKey); // private key account ganache
 
             //Request
-            transfer = Transfer.sendFunds(
-                            web3j,
-                            credentials,
-                            request.getAccountTo(),
-                            request.getAmount(),
-                            Convert.Unit.ETHER)
-                    .send();
+            transfer = Transfer.sendFunds(web3j, credentials, request.getToAccount(), request.getAmount(), Convert.Unit.ETHER).send();
             log.info("Transfer: {}", transfer);
 
             //Response
@@ -138,7 +130,6 @@ public class GanacheServiceImpl implements GanacheService {
                     .status(transfer.getStatus()) // 0x0 = gagal, 0x1 = sukses
                     .txHash(transfer.getTransactionHash())
                     .blockNumber(transfer.getBlockNumberRaw())
-                    .status(transfer.getStatus())
                     .accountFrom(transfer.getFrom())
                     .accountTo(transfer.getTo())
                     .build();
@@ -154,8 +145,7 @@ public class GanacheServiceImpl implements GanacheService {
         } catch (Exception e) {
             log.error("Error :{}\n", e.getMessage());
 
-            DetailData detailData = DetailData.builder()
-                    .status(transfer.getStatus()) // 0x0 = gagal, 0x1 = sukses
+            DetailData detailData = DetailData.builder().status(transfer.getStatus()) // 0x0 = gagal, 0x1 = sukses
                     .txHash(transfer.getTransactionHash())
                     .blockNumber(transfer.getBlockNumberRaw())
                     .status(transfer.getStatus())
@@ -166,37 +156,99 @@ public class GanacheServiceImpl implements GanacheService {
                     .statusCode("999")
                     .status(false)
                     .message("Failed Transfer")
-                    .data(detailData)
-                    .build();
+                    .data(detailData).build();
             return ResponseEntity.status(500).body(response);
         } finally {
-            log.info("Finished Process");
+            log.info("Finished Process Transaction");
         }
     }
 
+
     @Override
-    public ResponseEntity<SmartContractResponse> withdraw(swapTrxRequest request) throws Exception {
+    @Transactional
+    public ResponseEntity<SmartContractResponse> withdraw(WithdrawTrxRequest request) throws Exception {
+        //Action:
+        // Gunakan Fungsi
+        // BigDecimal idrValue = calculateEthToIdr(request, rate);
+        // BigDecimal ethValue = calculateIdrToEth(idrValue, rate);
         try {
-            //Request
-            ResponseEntity<BigDecimal> rate = coingeckoService.convert();   // harga 1 eth ke IDR
-            log.info("ETH to IDR rate : {}", rate.getBody());
+            if (!request.getToCurrency().isEmpty() || !request.getFromCurrency().isEmpty()) {
+                Nasabah sourceNasabah = nasabahRepository.findByAccount(request.getFromAccount());
+                Nasabah recepientNasabah = nasabahRepository.findByAccount(request.getToAccount());
 
-            NasabahSource referenceById = sourceRepository.getReferenceById(request.getAccountTo());// ganti request.nik();
-            referenceById.setEthBalance();
-            recipientRepository.findByNik(request.getAccountTo()); // ganti request.nik();
-//            Gunakan Fungsi
-//            BigDecimal idrValue = calculateEthToIdr(request, rate);
-//            BigDecimal ethValue = calculateIdrToEth(idrValue, rate);
+                if (recepientNasabah != null) {
+                    log.info("Data Nasabah Recepient: {}", recepientNasabah);
 
+                    //Request Inquiry Rate ETH To IDR
+                    ResponseEntity<BigDecimal> rate = priceConversionService.convert();
+                    log.info("ETH to IDR rate : {}", rate.getBody());
 
-            SmartContractResponse<Object> build = SmartContractResponse.builder().build();
-            return ResponseEntity.ok(build);
+                    if (request.getFromCurrency().equals("ETH") && request.getToCurrency().equals("IDR")) {
+                        BigDecimal idrValue = calculateEthToIdr(request.getAmount(), rate);
+                        log.info("ETH to IDR rate : {}", idrValue);
+
+                        BigDecimal currentIdrValue = idrValue.add(recepientNasabah.getIdrBalance());
+                        log.info("Current IDR value : {}", currentIdrValue);
+
+                        nasabahRepository.updateIdrBalancesByAccount(request.getToAccount(), currentIdrValue); // dana masuk
+
+                        BigDecimal currentEthValue = sourceNasabah.getEthBalance().subtract(request.getAmount());
+                        log.info("Current ETH value : {}", currentEthValue);
+
+                        nasabahRepository.updateEthBalancesByAccount(request.getFromAccount(), currentEthValue); // dana keluar
+
+                        Transactions transactions = new Transactions();
+                        transactions.setAccountSource(request.getFromAccount());
+                        transactions.setAccountRecepient(request.getToAccount());
+//                        transactions.setEthBalance();
+//                        transactions.setIdrBalance();
+                        Timestamp now = Timestamp.valueOf(LocalDateTime.now());
+//                        transactions.setCreatedAt(now);
+                        transactions.setUpdatedAt(now);
+                        transactionsRepository.save(transactions);
+                    } else if (request.getFromCurrency().equals("IDR") && request.getToCurrency().equals("ETH")) {
+                        BigDecimal ethValue = calculateIdrToEth(request.getAmount(), rate);
+                        log.info("IDR to ETH rate : {}", ethValue);
+
+                        BigDecimal currentEthValue = ethValue.add(recepientNasabah.getEthBalance());
+                        log.info("Current ETH value : {}", currentEthValue);
+
+                        nasabahRepository.updateEthBalancesByAccount(request.getToAccount(), currentEthValue); // dana masuk
+
+                        BigDecimal currentIdrValue = sourceNasabah.getIdrBalance().subtract(request.getAmount());
+                        log.info("Current IDR value : {}", currentIdrValue);
+
+                        nasabahRepository.updateIdrBalancesByAccount(request.getFromAccount(), currentIdrValue); // dana keluar
+
+                    } else {
+                        log.info("Layanan Tidak Konversi Tidak Tersedia");
+                        throw new Exception("Layanan Tidak Konversi Tidak Tersedia");
+                    }
+                }
+            } else {
+                log.info("Data Must Be not blank");
+                throw new Exception("Data Must Be not blank");
+            }
+
+            SmartContractResponse<Object> response = SmartContractResponse.builder()
+                    .statusCode("000")
+                    .status(true)
+                    .message("Success Transfer")
+                    .data(null)
+                    .build();
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error :{}\n", e.getMessage());
-            SmartContractResponse<Object> Error = SmartContractResponse.builder().statusCode("999").build();
-            return ResponseEntity.badRequest().body(Error);
+            SmartContractResponse<Object> Error = SmartContractResponse.builder()
+                    .statusCode("999")
+                    .status(false)
+                    .message(e.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.internalServerError().body(Error);
+        } finally {
+            log.info("Finished Process Transaction");
         }
-
     }
 
     private static BigDecimal calculateIdrToEth(BigDecimal idrValue, ResponseEntity<BigDecimal> rate) {
@@ -207,8 +259,8 @@ public class GanacheServiceImpl implements GanacheService {
     }
 
     @NotNull
-    private static BigDecimal calculateEthToIdr(swapTrxRequest request, ResponseEntity<BigDecimal> rate) {
-        BigDecimal ethAmount = request.getAmount(); // input ETH
+    private static BigDecimal calculateEthToIdr(BigDecimal request, ResponseEntity<BigDecimal> rate) {
+        BigDecimal ethAmount = request; // input ETH
         BigDecimal idrValue = rate.getBody().multiply(ethAmount).setScale(0, RoundingMode.HALF_UP); // ETH → IDR
         log.info("ETH to IDR value: {}", idrValue);
         return idrValue;

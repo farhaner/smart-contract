@@ -1,7 +1,7 @@
 package org.exm.smartcontract.services.impl;
 
 import lombok.extern.log4j.Log4j2;
-import org.exm.smartcontract.services.CoingeckoService;
+import org.exm.smartcontract.services.PriceConversionService;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -12,7 +12,7 @@ import java.util.Map;
 
 @Service
 @Log4j2
-public class CoingeckoImpl implements CoingeckoService {
+public class PriceConversionImpl implements PriceConversionService {
 
     @Override
     public ResponseEntity<BigDecimal> convert() throws Exception {

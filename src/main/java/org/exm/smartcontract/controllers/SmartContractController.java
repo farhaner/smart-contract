@@ -2,7 +2,8 @@ package org.exm.smartcontract.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.exm.smartcontract.dto.request.SmartContractRequest;
-import org.exm.smartcontract.dto.request.swapTrxRequest;
+import org.exm.smartcontract.dto.request.SwapTrxRequest;
+import org.exm.smartcontract.dto.request.WithdrawTrxRequest;
 import org.exm.smartcontract.dto.response.SmartContractResponse;
 import org.exm.smartcontract.services.GanacheService;
 import org.springframework.http.ResponseEntity;
@@ -29,12 +30,12 @@ public class SmartContractController {
     }
 
     @PostMapping("/transfer/swap")
-    ResponseEntity<SmartContractResponse> swapTransaction(@RequestBody swapTrxRequest request) throws Exception {
+    ResponseEntity<SmartContractResponse> swapTransaction(@RequestBody SwapTrxRequest request) throws Exception {
         return ganacheService.swap(request);
     }
 
     @PostMapping("/transfer/withdraw")
-    ResponseEntity<SmartContractResponse> withdrawTransaction(@RequestBody swapTrxRequest request) throws Exception {
+    ResponseEntity<SmartContractResponse> withdrawTransaction(@RequestBody WithdrawTrxRequest request) throws Exception {
         return ganacheService.withdraw(request);
     }
 

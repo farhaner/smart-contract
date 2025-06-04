@@ -7,8 +7,10 @@ import java.math.BigDecimal;
 
 @Data
 @Builder
-public class swapTrxRequest {
-    private String fromAccount;
+public class SwapTrxRequest {
+
+    private String fromAccount; // opsional & belum digunakan
     private String toAccount;
     private BigDecimal amount;
+
 }

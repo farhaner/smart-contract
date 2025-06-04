@@ -1,10 +1,10 @@
 package org.exm.smartcontract.dto.request;
 
+import lombok.Builder;
 import lombok.Data;
 
-import java.math.BigDecimal;
-
 @Data
+@Builder
 public class SmartContractRequest {
 
     private String requestId;
@@ -12,4 +12,5 @@ public class SmartContractRequest {
     private String channelId;
     private String name;
     private String nik;
+
 }
