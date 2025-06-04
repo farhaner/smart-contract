@@ -19,7 +19,7 @@ public interface NasabahRepository extends JpaRepository<Nasabah, String> {
     @Transactional
     @Query(value =
             "UPDATE BC_NASABAH\n" +
-                    "SET ETH_BALANCE = :eth\n" +
+                    "SET ETH_BALANCE = :eth, UPDATED_AT = SYSTIMESTAMP\n" +
                     "WHERE ACCOUNT = :account"
             , nativeQuery = true)
     int updateEthBalancesByAccount(@Param("account") int account, @Param("eth") BigDecimal eth);
@@ -28,7 +28,7 @@ public interface NasabahRepository extends JpaRepository<Nasabah, String> {
     @Transactional
     @Query(value =
             "UPDATE BC_NASABAH\n" +
-                    "SET IDR_BALANCE = :idr\n" +
+                    "SET IDR_BALANCE = :idr, UPDATED_AT = SYSTIMESTAMP\n" +
                     "WHERE ACCOUNT = :account"
             , nativeQuery = true)
     int updateIdrBalancesByAccount(@Param("account") int account, @Param("idr") BigDecimal idr);

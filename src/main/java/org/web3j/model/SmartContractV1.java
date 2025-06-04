@@ -1,19 +1,9 @@
 package org.web3j.model;
 
 import io.reactivex.Flowable;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Callable;
 import org.web3j.abi.EventEncoder;
 import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.DynamicArray;
-import org.web3j.abi.datatypes.Event;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.Utf8String;
+import org.web3j.abi.datatypes.*;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
@@ -27,11 +17,18 @@ import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+
 /**
  * <p>Auto generated code.
  * <p><strong>Do not modify!</strong>
  * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the
  * <a href="https://github.com/web3j/web3j/tree/master/codegen">codegen module</a> to update.
  *
  * <p>Generated with web3j version 4.10.3.
@@ -46,8 +43,13 @@ public class SmartContractV1 extends Contract {
 
     public static final String FUNC_GETALLREQUESTIDS = "getAllRequestIds";
 
-    public static final Event ITEMCREATED_EVENT = new Event("ItemCreated", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}, new TypeReference<Utf8String>() {}, new TypeReference<Utf8String>() {}, new TypeReference<Utf8String>() {}, new TypeReference<Utf8String>() {}));
+    public static final Event ITEMCREATED_EVENT = new Event("ItemCreated",
+            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {
+            }, new TypeReference<Utf8String>() {
+            }, new TypeReference<Utf8String>() {
+            }, new TypeReference<Utf8String>() {
+            }, new TypeReference<Utf8String>() {
+            }));
     ;
 
     @Deprecated
@@ -108,32 +110,33 @@ public class SmartContractV1 extends Contract {
 
     public RemoteFunctionCall<TransactionReceipt> createItem(String requestId, String submissionDate, String channelId, String name, String nik) {
         final Function function = new Function(
-                FUNC_CREATEITEM, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Utf8String(requestId), 
-                new org.web3j.abi.datatypes.Utf8String(submissionDate), 
-                new org.web3j.abi.datatypes.Utf8String(channelId), 
-                new org.web3j.abi.datatypes.Utf8String(name), 
-                new org.web3j.abi.datatypes.Utf8String(nik)), 
+                FUNC_CREATEITEM,
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Utf8String(requestId),
+                        new org.web3j.abi.datatypes.Utf8String(submissionDate),
+                        new org.web3j.abi.datatypes.Utf8String(channelId),
+                        new org.web3j.abi.datatypes.Utf8String(name),
+                        new org.web3j.abi.datatypes.Utf8String(nik)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<TransactionReceipt> updateItem(String requestId, String submissionDate, String channelId, String name, String nik) {
         final Function function = new Function(
-                FUNC_UPDATEITEM, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Utf8String(requestId), 
-                new org.web3j.abi.datatypes.Utf8String(submissionDate), 
-                new org.web3j.abi.datatypes.Utf8String(channelId), 
-                new org.web3j.abi.datatypes.Utf8String(name), 
-                new org.web3j.abi.datatypes.Utf8String(nik)), 
+                FUNC_UPDATEITEM,
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Utf8String(requestId),
+                        new org.web3j.abi.datatypes.Utf8String(submissionDate),
+                        new org.web3j.abi.datatypes.Utf8String(channelId),
+                        new org.web3j.abi.datatypes.Utf8String(name),
+                        new org.web3j.abi.datatypes.Utf8String(nik)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<List> getAllRequestIds() {
-        final Function function = new Function(FUNC_GETALLREQUESTIDS, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Utf8String>>() {}));
+        final Function function = new Function(FUNC_GETALLREQUESTIDS,
+                Arrays.<Type>asList(),
+                Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Utf8String>>() {
+                }));
         return new RemoteFunctionCall<List>(function,
                 new Callable<List>() {
                     @Override
