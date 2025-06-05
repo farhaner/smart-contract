@@ -175,18 +175,24 @@ public class GanacheServiceImpl implements GanacheService {
         Optional<Transactions> dataTransaction = null;
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
         try {
-            if (!request.getToCurrency().isEmpty() || !request.getFromCurrency().isEmpty()) {
-                Nasabah sourceNasabah = nasabahRepository.findByAccount(request.getFromAccount());
-                Nasabah recepientNasabah = nasabahRepository.findByAccount(request.getToAccount());
+            if (request.getFromAccount() == request.getToAccount()) {
+                log.info("Transaction Invalid");
+                throw new Exception("Transaction Invalid");
+            }
 
-                if (recepientNasabah != null) {
-                    log.info("Data Nasabah Recepient: {}", recepientNasabah);
+            Nasabah sourceNasabah = nasabahRepository.findByAccount(request.getFromAccount());
+            Nasabah recepientNasabah = nasabahRepository.findByAccount(request.getToAccount());
 
-                    //Request Inquiry Rate ETH To IDR
-                    ResponseEntity<BigDecimal> rate = priceConversionService.convert();
-                    log.info("ETH to IDR rate : {}", rate.getBody());
+            if (recepientNasabah != null && sourceNasabah != null) {
+                log.info("Data Nasabah Recepient: {}", recepientNasabah);
 
-                    if (request.getFromCurrency().equals("ETH") && request.getToCurrency().equals("IDR")) {
+                //Request Inquiry Rate ETH To IDR
+                ResponseEntity<BigDecimal> rate = priceConversionService.convert();
+                log.info("ETH to IDR rate : {}", rate.getBody());
+
+                if (request.getFromCurrency().equals("ETH") && request.getToCurrency().equals("IDR")) {
+                    if (sourceNasabah.getEthBalance() != null && sourceNasabah.getEthBalance().compareTo(BigDecimal.ZERO) > 0) {
+
                         BigDecimal idrValue = calculateEthToIdr(request.getAmount(), rate);
                         log.info("ETH to IDR rate : {}", idrValue);
 
@@ -200,7 +206,25 @@ public class GanacheServiceImpl implements GanacheService {
 
                         nasabahRepository.updateEthBalancesByAccount(request.getFromAccount(), currentEthValue); // dana keluar
 
-                    } else if (request.getFromCurrency().equals("IDR") && request.getToCurrency().equals("ETH")) {
+                        Transactions transactions = new Transactions();
+                        transactions.setId(UUID.randomUUID().toString());
+                        transactions.setAccountSource(request.getFromAccount());
+                        transactions.setAccountRecepient(request.getToAccount());
+                        transactions.setAmount(request.getAmount());
+                        transactions.setStatus("0x0");
+                        transactions.setCreatedAt(now);
+                        transactions.setUpdatedAt(now);
+
+                        Transactions savedTransaction = transactionsRepository.save(transactions);
+                        dataTransaction = transactionsRepository.findById(savedTransaction.getId());
+                        log.info("Data Transaction: {}", dataTransaction);
+                    } else {
+                        log.info("insufficient funds");
+                        throw new Exception("insufficient funds");
+                    }
+                } else if (request.getFromCurrency().equals("IDR") && request.getToCurrency().equals("ETH")) {
+                    if (sourceNasabah.getIdrBalance() != null && sourceNasabah.getIdrBalance().compareTo(BigDecimal.ZERO) > 0) {
+
                         BigDecimal ethValue = calculateIdrToEth(request.getAmount(), rate);
                         log.info("IDR to ETH rate : {}", ethValue);
 
@@ -214,7 +238,25 @@ public class GanacheServiceImpl implements GanacheService {
 
                         nasabahRepository.updateIdrBalancesByAccount(request.getFromAccount(), currentIdrValue); // dana keluar
 
-                    } else if (request.getFromCurrency().equals("IDR") && request.getToCurrency().equals("IDR")) {
+                        Transactions transactions = new Transactions();
+                        transactions.setId(UUID.randomUUID().toString());
+                        transactions.setAccountSource(request.getFromAccount());
+                        transactions.setAccountRecepient(request.getToAccount());
+                        transactions.setAmount(request.getAmount());
+                        transactions.setStatus("0x0");
+                        transactions.setCreatedAt(now);
+                        transactions.setUpdatedAt(now);
+
+                        Transactions savedTransaction = transactionsRepository.save(transactions);
+                        dataTransaction = transactionsRepository.findById(savedTransaction.getId());
+                        log.info("Data Transaction: {}", dataTransaction);
+                    } else {
+                        log.info("insufficient funds");
+                        throw new Exception("insufficient funds");
+                    }
+                } else if (request.getFromCurrency().equals("IDR") && request.getToCurrency().equals("IDR")) {
+                    if (sourceNasabah.getIdrBalance() != null && sourceNasabah.getIdrBalance().compareTo(BigDecimal.ZERO) > 0) {
+
                         BigDecimal currentSourceValue = sourceNasabah.getIdrBalance().subtract(request.getAmount());
                         log.info("Current IDR value : {}", currentSourceValue);
 
@@ -230,21 +272,24 @@ public class GanacheServiceImpl implements GanacheService {
                         transactions.setAccountSource(request.getFromAccount());
                         transactions.setAccountRecepient(request.getToAccount());
                         transactions.setAmount(request.getAmount());
+                        transactions.setStatus("0x0");
                         transactions.setCreatedAt(now);
                         transactions.setUpdatedAt(now);
 
                         Transactions savedTransaction = transactionsRepository.save(transactions);
                         dataTransaction = transactionsRepository.findById(savedTransaction.getId());
                         log.info("Data Transaction: {}", dataTransaction);
-
                     } else {
-                        log.info("Layanan Tidak Konversi Tidak Tersedia");
-                        throw new Exception("Layanan Tidak Konversi Tidak Tersedia");
+                        log.info("insufficient funds");
+                        throw new Exception("insufficient funds");
                     }
+                } else {
+                    log.info("Unconverted Service Not Available");
+                    throw new Exception("Unconverted Service Not Available");
                 }
             } else {
-                log.info("Data Must Be not blank");
-                throw new Exception("Data Must Be not blank");
+                log.info("Nasabah Not Found");
+                throw new Exception("Nasabah Not Found");
             }
             SmartContractResponse<Object> response = SmartContractResponse.builder()
                     .statusCode("000")
@@ -255,11 +300,25 @@ public class GanacheServiceImpl implements GanacheService {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error :{}\n", e.getMessage());
+
+            Transactions transactions = new Transactions();
+            transactions.setId(UUID.randomUUID().toString());
+            transactions.setAccountSource(request.getFromAccount());
+            transactions.setAccountRecepient(request.getToAccount());
+            transactions.setAmount(request.getAmount());
+            transactions.setStatus("0x1");
+            transactions.setCreatedAt(now);
+            transactions.setUpdatedAt(now);
+
+            Transactions savedTransaction = transactionsRepository.save(transactions);
+            dataTransaction = transactionsRepository.findById(savedTransaction.getId());
+
+            log.info("Data Transaction: {}", dataTransaction);
             SmartContractResponse<Object> Error = SmartContractResponse.builder()
                     .statusCode("999")
                     .status(false)
                     .message(e.getMessage())
-                    .data(null)
+                    .data(dataTransaction)
                     .build();
             return ResponseEntity.internalServerError().body(Error);
         }

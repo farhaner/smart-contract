@@ -15,6 +15,7 @@ import java.sql.Timestamp;
 public class Nasabah {
 
     @Id
+    @Column(name = "ID")
     private String id;
 
     @Column(name = "NIK", unique = true, nullable = false)
